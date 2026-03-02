@@ -1,0 +1,110 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.2.25",
+    "lastTouchedAt": "2026-03-02T00:01:04.785Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-02-27T00:42:12.461Z",
+    "lastRunVersion": "2026.2.25",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "openrouter:default": {
+        "provider": "openrouter",
+        "mode": "api_key"
+      },
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      },
+      "openai-codex:default": {
+        "provider": "openai-codex",
+        "mode": "oauth"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openrouter/free",
+        "fallbacks": [
+          "openrouter/auto",
+          "google/gemini-3.1-pro-preview",
+          "google/gemini-flash-latest"
+        ]
+      },
+      "models": {
+        "openrouter/auto": {
+          "alias": "OpenRouterAuto",
+          "params": {
+            "maxTokens": 2048
+          }
+        },
+        "google/gemini-3.1-pro-preview": {},
+        "google/gemini-flash-latest": {},
+        "openai-codex/gpt-5.3-codex": {}
+      },
+      "workspace": "/home/ec2-user/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "timeoutSeconds": 1200
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "self-improvement": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "botToken": "8767634652:AAHt1LOKFVVw9qd7cULAMzKWxKTnLzSpaGQ",
+      "groupPolicy": "allowlist",
+      "streaming": "off"
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "39d73f3180d09a0717c3cb35ce6285489e198f9e96a3ff1e"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "remote": {
+      "token": "__OPENCLAW_REDACTED__"
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "calendar.add",
+        "contacts.add",
+        "reminders.add"
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{"type":"session","version":3,"id":"probe-openrouter-f2be7f76-d1fd-41fb-8d63-a6ea5afe558f","timestamp":"2026-03-01T00:09:37.425Z","cwd":"/home/ec2-user/.openclaw/workspace"}
+{"type":"model_change","id":"f180daad","parentId":null,"timestamp":"2026-03-01T00:09:37.428Z","provider":"openrouter","modelId":"openrouter/auto"}
+{"type":"thinking_level_change","id":"22df9abf","parentId":"f180daad","timestamp":"2026-03-01T00:09:37.428Z","thinkingLevel":"off"}
+{"type":"custom","customType":"model-snapshot","data":{"timestamp":1772323777434,"provider":"openrouter","modelApi":"openai-completions","modelId":"openrouter/auto"},"id":"ae5b7524","parentId":"22df9abf","timestamp":"2026-03-01T00:09:37.434Z"}
+{"type":"message","id":"8380b8fb","parentId":"ae5b7524","timestamp":"2026-03-01T00:09:37.443Z","message":{"role":"user","content":[{"type":"text","text":"Reply with OK. Do not use tools."}],"timestamp":1772323777436}}
+{"type":"message","id":"e6338bac","parentId":"8380b8fb","timestamp":"2026-03-01T00:09:38.154Z","message":{"role":"assistant","content":[{"type":"text","text":"OK"}],"api":"openai-completions","provider":"openrouter","model":"openrouter/auto","usage":{"input":10608,"output":1,"cacheRead":0,"cacheWrite":0,"totalTokens":10609,"cost":{"input":-10608,"output":-1,"cacheRead":0,"cacheWrite":0,"total":-10609}},"stopReason":"stop","timestamp":1772323777440}}

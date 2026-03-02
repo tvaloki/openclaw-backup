@@ -1,0 +1,243 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "ac6cb972-3a5b-4f41-8bcd-ed5264ac20b0",
+      "name": "Nashville Morning Brief (6:30 AM + 4:00 PM Weekdays)",
+      "description": "Daily Nashville morning brief using tessie, smart-route, daily-news-digest",
+      "enabled": true,
+      "createdAtMs": 1772161436226,
+      "updatedAtMs": 1772454607698,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 6,16 * * 1-5",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Create an ULTRA-COMPACT Nashville Brief using ONLY tessie, smart-route, daily-news-digest. HARD LIMIT: 90-110 words total. Bullets only. Exactly 3 bullets: (1) Tesla: battery, range, charging. (2) Route: ETA to Downtown Nashville or 'Unavailable: <short reason>'. (3) Local news: max 2 Nashville/Middle TN one-line headlines; no international news. End with one final line: '**✅ Quick Focus:** <very short action>'. No other text."
+      },
+      "state": {
+        "nextRunAtMs": 1772490600000,
+        "lastRunAtMs": 1772454600053,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 7645,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 0
+      }
+    },
+    {
+      "id": "e99bebad-51af-47b2-bf31-eca4b83d9285",
+      "name": "OpenClaw Doctor (Twice Daily)",
+      "description": "Run openclaw doctor at 6:30am and 6:30pm",
+      "enabled": true,
+      "createdAtMs": 1772231571294,
+      "updatedAtMs": 1772454671616,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 6,18 * * *",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run: openclaw doctor --fix --non-interactive. If that fails, run: openclaw doctor --repair --non-interactive. Reply only if there are actionable errors or fixes (max 3 short bullets). Otherwise reply exactly NO_REPLY.",
+        "model": "openai-codex/gpt-5.3-codex",
+        "thinking": "off"
+      },
+      "delivery": {
+        "mode": "none",
+        "channel": "last"
+      },
+      "state": {
+        "nextRunAtMs": 1772497800000,
+        "lastRunAtMs": 1772454607698,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 63918,
+        "lastDelivered": false,
+        "lastDeliveryStatus": "not-delivered",
+        "consecutiveErrors": 0
+      }
+    },
+    {
+      "id": "2dc66fba-3afa-40b6-ad3e-fc8100ed5909",
+      "name": "Austin Improvement Pulse",
+      "description": "Proactive self-maintenance and forward-looking improvements",
+      "enabled": true,
+      "createdAtMs": 1772234571816,
+      "updatedAtMs": 1772485209285,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 6,9,12,15,20 * * *",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run Austin Improvement Pulse in LOW-TOKEN mode. Max 4 bullets, each one sentence. Check only: gateway health, cron failures, tessie/smart-route readiness. If nothing actionable, reply exactly NO_REPLY.",
+        "model": "openai-codex/gpt-5.3-codex",
+        "thinking": "off"
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "last"
+      },
+      "state": {
+        "nextRunAtMs": 1772503200000,
+        "lastRunAtMs": 1772485200007,
+        "lastRunStatus": "error",
+        "lastStatus": "error",
+        "lastDurationMs": 9278,
+        "lastDeliveryStatus": "unknown",
+        "consecutiveErrors": 6,
+        "lastError": "cron announce delivery failed"
+      }
+    },
+    {
+      "id": "92ea31c2-a4be-4f25-aa75-dc2d28319c1e",
+      "name": "Nightly Memory Consolidation",
+      "description": "Apply newly learned user/workflow insights into MEMORY.md and daily memory log",
+      "enabled": true,
+      "createdAtMs": 1772291405424,
+      "updatedAtMs": 1772423100791,
+      "schedule": {
+        "kind": "cron",
+        "expr": "45 21 * * *",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Nightly memory consolidation: review today’s key learnings, preferences, decisions, and outstanding follow-ups. Update MEMORY.md (long-term stable facts) and memory/2026-02-28.md equivalent daily note with concise bullets. Do not invent facts. If no meaningful new learnings, reply NO_REPLY."
+      },
+      "state": {
+        "nextRunAtMs": 1772509500000,
+        "lastRunAtMs": 1772423100037,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 754,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 0
+      }
+    },
+    {
+      "id": "d2858b21-604c-4dc0-a2ca-bceecd26aff6",
+      "name": "Austin Weekday Evening Reminder",
+      "description": "Daily morning reminder for maintenance board",
+      "enabled": true,
+      "createdAtMs": 1772311590916,
+      "updatedAtMs": 1772311786598,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 18 * * 1-5",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Send Austin a short weekday evening reminder: quick maintenance board check, close one small task tonight, and set one carry-forward for tomorrow."
+      },
+      "state": {
+        "nextRunAtMs": 1772496000000
+      }
+    },
+    {
+      "id": "4376bb95-3a6a-426c-9c06-3e99df7012a8",
+      "name": "Austin Weekend Morning Reminder",
+      "description": "Weekend morning maintenance nudge",
+      "enabled": true,
+      "createdAtMs": 1772311729066,
+      "updatedAtMs": 1772366409697,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 6 * * 6,0",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Send Austin a short weekend morning reminder: review today’s Top 3 maintenance board and pick one must-do before noon."
+      },
+      "state": {
+        "nextRunAtMs": 1772884800000,
+        "lastRunAtMs": 1772366406917,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 2780,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 0
+      }
+    },
+    {
+      "id": "cceeac47-7fce-42d0-9496-1e5ef1a32d2b",
+      "name": "One-Time Background Jobs Report (+12h)",
+      "description": "Send Austin a 12-hour follow-up jobs report",
+      "enabled": true,
+      "createdAtMs": 1772317315112,
+      "updatedAtMs": 1772360470656,
+      "schedule": {
+        "kind": "cron",
+        "expr": "21 4 1 3 *",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Generate a concise report of background jobs run in the prior 12 hours: job name, runs, statuses, notable errors, and quick recommendation. Keep it short and practical."
+      },
+      "delivery": {
+        "mode": "announce",
+        "channel": "last"
+      },
+      "state": {
+        "nextRunAtMs": 1803896460000,
+        "lastRunAtMs": 1772360460043,
+        "lastRunStatus": "error",
+        "lastStatus": "error",
+        "lastDurationMs": 10613,
+        "lastError": "Unhandled stop reason: error",
+        "lastDelivered": true,
+        "lastDeliveryStatus": "delivered",
+        "consecutiveErrors": 1
+      }
+    },
+    {
+      "id": "ebb374a2-11c7-47f2-8eb2-21ab505831b7",
+      "name": "Disable One-Time Background Report Cron",
+      "description": "Disable the one-time 12h report cron after it runs",
+      "enabled": true,
+      "createdAtMs": 1772317397465,
+      "updatedAtMs": 1772360541442,
+      "schedule": {
+        "kind": "cron",
+        "expr": "22 4 1 3 *",
+        "tz": "America/Chicago"
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "Disable cron job cceeac47-7fce-42d0-9496-1e5ef1a32d2b after it has run. Then reply NO_REPLY."
+      },
+      "state": {
+        "nextRunAtMs": 1803896520000,
+        "lastRunAtMs": 1772360520026,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 21416,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 0
+      }
+    }
+  ]
+}
