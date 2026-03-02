@@ -7,7 +7,7 @@
       "description": "Daily Nashville morning brief using tessie, smart-route, daily-news-digest",
       "enabled": true,
       "createdAtMs": 1772161436226,
-      "updatedAtMs": 1772454607698,
+      "updatedAtMs": 1772490635965,
       "schedule": {
         "kind": "cron",
         "expr": "30 6,16 * * 1-5",
@@ -20,11 +20,11 @@
         "text": "Create an ULTRA-COMPACT Nashville Brief using ONLY tessie, smart-route, daily-news-digest. HARD LIMIT: 90-110 words total. Bullets only. Exactly 3 bullets: (1) Tesla: battery, range, charging. (2) Route: ETA to Downtown Nashville or 'Unavailable: <short reason>'. (3) Local news: max 2 Nashville/Middle TN one-line headlines; no international news. End with one final line: '**✅ Quick Focus:** <very short action>'. No other text."
       },
       "state": {
-        "nextRunAtMs": 1772490600000,
-        "lastRunAtMs": 1772454600053,
+        "nextRunAtMs": 1772541000000,
+        "lastRunAtMs": 1772490600062,
         "lastRunStatus": "ok",
         "lastStatus": "ok",
-        "lastDurationMs": 7645,
+        "lastDurationMs": 35903,
         "lastDeliveryStatus": "not-requested",
         "consecutiveErrors": 0
       }

@@ -32,17 +32,17 @@
   },
   "usageStats": {
     "openrouter:default": {
-      "lastUsed": 1772490362120,
+      "lastUsed": 1772491031649,
       "errorCount": 0
     },
     "google:default": {
-      "errorCount": 5,
-      "lastFailureAt": 1772486759089,
+      "errorCount": 6,
+      "lastFailureAt": 1772490446862,
       "lastUsed": 1772463744875,
       "failureCounts": {
-        "rate_limit": 5
+        "rate_limit": 6
       },
-      "cooldownUntil": 1772490359089
+      "cooldownUntil": 1772494046862
     },
     "openai-codex:default": {
       "lastUsed": 1772485209168,
