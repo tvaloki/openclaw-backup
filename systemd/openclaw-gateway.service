@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenClaw Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ec2-user
+Environment=HOME=/home/ec2-user
+Environment=TMPDIR=/tmp
+Environment=PATH=/home/ec2-user/.nvm/current/bin:/home/ec2-user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=OPENCLAW_GATEWAY_PORT=18789
+
+ExecStart=/usr/bin/node /home/ec2-user/.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/dist/index.js gateway --port 18789
+Restart=always
+RestartSec=5
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
