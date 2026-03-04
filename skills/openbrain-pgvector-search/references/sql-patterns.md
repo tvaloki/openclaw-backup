@@ -1,4 +1,4 @@
-# Service Central pgvector SQL Patterns
+# OpenBrain pgvector SQL Patterns
 
 ## 1) Discover candidate tables/columns
 

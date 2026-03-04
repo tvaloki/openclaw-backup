@@ -1,11 +1,11 @@
 ---
-name: service-central-pgvector-search
-description: Semantic retrieval for Service Central content stored in Postgres with pgvector. Use when a user asks to search Service Central, retrieve relevant docs/snippets by meaning (not keyword), or debug pgvector search quality/performance.
+name: openbrain-pgvector-search
+description: Semantic retrieval for knowledge stored in OpenBrain Postgres databases using pgvector. Use when a user asks for meaning-based search (not keyword), context retrieval, or pgvector query/index troubleshooting.
 ---
 
-# Service Central Pgvector Search
+# OpenBrain Pgvector Search
 
-Run semantic search against Service Central using `openbrain_tool` + `execute_sql`.
+Run semantic search against OpenBrain-connected Postgres using `openbrain_tool` + `execute_sql`.
 
 ## Workflow
 
