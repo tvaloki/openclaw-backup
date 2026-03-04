@@ -13,7 +13,8 @@ Run semantic search against OpenBrain-connected Postgres using `openbrain_tool` 
 2. Confirm the embeddings table, vector column, content/title fields, and embedding dimension.
 3. Run top-k semantic retrieval query.
 4. Return concise results with score and source fields.
-5. If retrieval is slow, recommend/create pgvector index pattern from `references/sql-patterns.md`.
+5. If semantic retrieval is unavailable (embedding provider limits/outage), use SQL fallback (ILIKE + pg_trgm similarity) instead of failing.
+6. If retrieval is slow, recommend/create pgvector index pattern from `references/sql-patterns.md`.
 
 ## Required preflight checks
 
@@ -42,3 +43,4 @@ If pgvector or vector columns are missing, stop and report exactly what is missi
 ## References
 
 - SQL templates and indexing guidance: `references/sql-patterns.md`
+- Local helper with semantic→SQL fallback: `/home/ec2-user/.openclaw/workspace/tools/query_doug_memory.py`
