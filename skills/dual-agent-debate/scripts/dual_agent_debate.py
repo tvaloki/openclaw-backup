@@ -4,6 +4,7 @@ import json
 import math
 import os
 import random
+import subprocess
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -63,10 +64,33 @@ def mcp_call(tool_name: str, arguments: dict, retries: int = 2):
             return {"ok": False, "error": str(e)}
 
 
+def cli_agent_chat(messages: list[dict]) -> str:
+    prompt = "\n\n".join([f"{m.get('role','user').upper()}: {m.get('content','')}" for m in messages])
+    cmd = ["openclaw", "agent", "--json", "--agent", "main", "--thinking", "off", "--message", prompt]
+    out = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+    data = None
+    try:
+        data = json.loads(out)
+    except Exception:
+        i = out.rfind("{")
+        while i != -1:
+            try:
+                data = json.loads(out[i:])
+                break
+            except Exception:
+                i = out.rfind("{", 0, i)
+    if not isinstance(data, dict):
+        raise RuntimeError("Could not parse openclaw agent JSON output")
+    payloads = data.get("payloads", [])
+    if not payloads:
+        raise RuntimeError("No payloads from openclaw agent")
+    return (payloads[0].get("text") or "").strip()
+
+
 def openai_chat(messages: list[dict], model: str, retries: int = 2) -> str:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is required")
+        return cli_agent_chat(messages)
 
     payload = {"model": model, "messages": messages, "temperature": 0.2}
     headers = {"Authorization": f"Bearer {api_key}"}
@@ -85,7 +109,11 @@ def openai_chat(messages: list[dict], model: str, retries: int = 2) -> str:
 def openai_embedding(text: str, model: str = "text-embedding-3-small", retries: int = 2) -> list[float]:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is required")
+        # lexical fallback vector: hashed token counts (128 dims)
+        vec = [0.0] * 128
+        for tok in text.lower().split():
+            vec[hash(tok) % 128] += 1.0
+        return vec
 
     payload = {"model": model, "input": text[:8000]}
     headers = {"Authorization": f"Bearer {api_key}"}
@@ -290,6 +318,24 @@ def main():
     insert_sql = f"insert into public.memories ({col_sql}) values ({val_sql}) returning *;"
 
     saved = sql_query(sql_tool, insert_sql)
+    saved_txt = (extract_text(saved.get("result")) if isinstance(saved, dict) else str(saved))
+    saved_l = saved_txt.lower()
+    missing_memories = ("public.memories" in saved_l and "does not exist" in saved_l)
+    if (not saved.get("ok")) or missing_memories:
+        create_sql = """
+        create table if not exists public.memories (
+          id bigserial primary key,
+          key text unique,
+          content text,
+          category text,
+          importance integer,
+          source text,
+          metadata jsonb,
+          created_at timestamptz default now()
+        );
+        """
+        _ = sql_query(sql_tool, create_sql)
+        saved = sql_query(sql_tool, insert_sql)
 
     print(json.dumps({
         "outcome": outcome,

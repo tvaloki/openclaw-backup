@@ -12,11 +12,18 @@ Execute `scripts/dual_agent_debate.py` to run the debate loop.
 Set required environment variables:
 
 ```bash
-export OPENAI_API_KEY="..."
 export OPENBRAIN_MCP_URL="http://127.0.0.1:54321/mcp"
-# optional
+# optional if MCP is protected
 export OPENBRAIN_MCP_TOKEN="..."
 ```
+
+Optional: if you want direct OpenAI API mode, set:
+
+```bash
+export OPENAI_API_KEY="..."
+```
+
+If `OPENAI_API_KEY` is not set, the script uses `openclaw agent` (OAuth-backed local setup) for debate responses.
 
 Optional tool/model overrides (defaults shown):
 
