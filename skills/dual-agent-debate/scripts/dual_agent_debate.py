@@ -91,17 +91,30 @@ def main():
     args = p.parse_args()
 
     context_tool = os.environ.get("OPENBRAIN_CONTEXT_TOOL", "search_docs")
-    thoughts_tool = os.environ.get("OPENBRAIN_THOUGHTS_TOOL", "query_memory")
-    store_tool = os.environ.get("OPENBRAIN_STORE_TOOL", "write_memory")
+    sql_tool = os.environ.get("OPENBRAIN_SQL_TOOL", "execute_sql")
 
     context = ""
-    c = mcp_call(context_tool, {"query": args.query, "limit": 8})
+    q_gql = args.query.replace('\\', '\\\\').replace('"', '\\"')
+    gql = (
+        'query { searchDocs(query: "' + q_gql + '", limit: 5) '
+        '{ nodes { ... on Guide { title href content } '
+        '... on TroubleshootingGuide { title href content } '
+        '... on CLICommandReference { title href content } } } }'
+    )
+    c = mcp_call(context_tool, {"graphql_query": gql})
     if c.get("ok"):
         context = extract_text(c.get("result"))
 
     thoughts = args.thoughts.strip()
     if not thoughts:
-        t = mcp_call(thoughts_tool, {"query": args.query, "limit": 8})
+        q_esc = args.query.replace("'", "''")
+        thoughts_sql = f"""
+        select coalesce(string_agg(content, E'\\n\\n---\\n\\n' order by created_at desc), '') as text
+        from public.thoughts
+        where lower(content) like '%' || lower('{q_esc}') || '%'
+        limit 8;
+        """
+        t = mcp_call(sql_tool, {"query": thoughts_sql})
         if t.get("ok"):
             thoughts = extract_text(t.get("result"))
 
@@ -154,20 +167,20 @@ def main():
     }
 
     key = f"dual-agent-debate:{int(time.time())}"
-    store_args = {
-        "key": key,
-        "content": json.dumps(outcome, ensure_ascii=False),
-        "category": "decision",
-        "importance": 2,
-    }
-    saved = mcp_call(store_tool, store_args)
+    content_json = json.dumps(outcome, ensure_ascii=False).replace("'", "''")
+    key_esc = key.replace("'", "''")
+    insert_sql = f"""
+    insert into public.memories (key, content, category, importance)
+    values ('{key_esc}', '{content_json}', 'decision', 2)
+    returning key, created_at;
+    """
+    saved = mcp_call(sql_tool, {"query": insert_sql})
 
     print(json.dumps({
         "outcome": outcome,
         "store": saved,
-        "store_tool": store_tool,
+        "store_tool": sql_tool,
         "context_tool": context_tool,
-        "thoughts_tool": thoughts_tool,
     }, indent=2, ensure_ascii=False))
 
 

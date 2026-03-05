@@ -18,12 +18,11 @@ export OPENBRAIN_MCP_URL="http://127.0.0.1:54321/mcp"
 export OPENBRAIN_MCP_TOKEN="..."
 ```
 
-Optional MCP tool overrides (defaults shown):
+Optional tool/model overrides (defaults shown):
 
 ```bash
 export OPENBRAIN_CONTEXT_TOOL="search_docs"
-export OPENBRAIN_THOUGHTS_TOOL="query_memory"
-export OPENBRAIN_STORE_TOOL="write_memory"
+export OPENBRAIN_SQL_TOOL="execute_sql"
 export DEBATE_MODEL="gpt-4o-mini"
 ```
 
@@ -47,11 +46,11 @@ python3 skills/dual-agent-debate/scripts/dual_agent_debate.py \
 ## Behavior
 
 1. Pull context from Open Brain MCP (`OPENBRAIN_CONTEXT_TOOL`).
-2. Pull related prior thoughts from Open Brain MCP (`OPENBRAIN_THOUGHTS_TOOL`) unless `--thoughts` is provided.
+2. Pull related prior thoughts from `public.thoughts` via MCP `execute_sql` unless `--thoughts` is provided.
 3. Ask ChatGPT to debate the query using context and thoughts.
 4. Compute semantic similarity (OpenAI embeddings) between ChatGPT reply and thoughts.
 5. Repeat up to 3 rounds or stop early on agreement threshold.
-6. Persist full outcome to Open Brain MCP (`OPENBRAIN_STORE_TOOL`).
+6. Persist full outcome into `public.memories` via MCP `execute_sql`.
 
 ## Notes
 
