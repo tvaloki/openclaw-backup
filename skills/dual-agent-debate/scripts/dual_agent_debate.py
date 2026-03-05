@@ -3,14 +3,19 @@ import argparse
 import json
 import math
 import os
+import random
 import time
 from datetime import datetime, timezone
-from urllib import request, error
+from urllib import error, request
+
+
+def _sleep_backoff(attempt: int, base: float = 0.8):
+    time.sleep(base * (2 ** attempt) + random.uniform(0, 0.25))
 
 
 def post_json(url: str, payload: dict, headers: dict | None = None, timeout: int = 60):
     body = json.dumps(payload).encode("utf-8")
-    h = {"Content-Type": "application/json"}
+    h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     if headers:
         h.update(headers)
     req = request.Request(url, data=body, headers=h, method="POST")
@@ -18,7 +23,15 @@ def post_json(url: str, payload: dict, headers: dict | None = None, timeout: int
         return json.loads(resp.read().decode("utf-8"))
 
 
-def mcp_call(tool_name: str, arguments: dict):
+def safe_sql_str(value: str) -> str:
+    # dollar-quote with collision-safe tag
+    tag = "q"
+    while f"${tag}$" in value:
+        tag += "q"
+    return f"${tag}${value}${tag}$"
+
+
+def mcp_call(tool_name: str, arguments: dict, retries: int = 2):
     url = os.environ.get("OPENBRAIN_MCP_URL", "http://127.0.0.1:54321/mcp")
     token = os.environ.get("OPENBRAIN_MCP_TOKEN", "")
     headers = {}
@@ -32,32 +45,59 @@ def mcp_call(tool_name: str, arguments: dict):
         "params": {"name": tool_name, "arguments": arguments},
     }
 
-    try:
-        out = post_json(url, payload, headers=headers, timeout=60)
-        if "error" in out:
-            return {"ok": False, "error": out["error"]}
-        return {"ok": True, "result": out.get("result")}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    for attempt in range(retries + 1):
+        try:
+            out = post_json(url, payload, headers=headers, timeout=60)
+            if "error" in out:
+                msg = str(out["error"])
+                if attempt < retries and any(k in msg.lower() for k in ["timeout", "429", "rate", "tempor"]):
+                    _sleep_backoff(attempt)
+                    continue
+                return {"ok": False, "error": out["error"]}
+            return {"ok": True, "result": out.get("result")}
+        except Exception as e:
+            if attempt < retries:
+                _sleep_backoff(attempt)
+                continue
+            return {"ok": False, "error": str(e)}
 
 
-def openai_chat(messages: list[dict], model: str) -> str:
+def openai_chat(messages: list[dict], model: str, retries: int = 2) -> str:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is required")
 
     payload = {"model": model, "messages": messages, "temperature": 0.2}
     headers = {"Authorization": f"Bearer {api_key}"}
-    out = post_json("https://api.openai.com/v1/chat/completions", payload, headers=headers, timeout=90)
-    return out["choices"][0]["message"]["content"].strip()
+
+    for attempt in range(retries + 1):
+        try:
+            out = post_json("https://api.openai.com/v1/chat/completions", payload, headers=headers, timeout=90)
+            return out["choices"][0]["message"]["content"].strip()
+        except Exception:
+            if attempt < retries:
+                _sleep_backoff(attempt)
+                continue
+            raise
 
 
-def openai_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
+def openai_embedding(text: str, model: str = "text-embedding-3-small", retries: int = 2) -> list[float]:
     api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required")
+
     payload = {"model": model, "input": text[:8000]}
     headers = {"Authorization": f"Bearer {api_key}"}
-    out = post_json("https://api.openai.com/v1/embeddings", payload, headers=headers, timeout=90)
-    return out["data"][0]["embedding"]
+
+    for attempt in range(retries + 1):
+        try:
+            out = post_json("https://api.openai.com/v1/embeddings", payload, headers=headers, timeout=90)
+            return out["data"][0]["embedding"]
+        except Exception:
+            if attempt < retries:
+                _sleep_backoff(attempt)
+                continue
+            raise
 
 
 def cosine(a: list[float], b: list[float]) -> float:
@@ -75,10 +115,71 @@ def extract_text(mcp_result) -> str:
     if isinstance(mcp_result, dict):
         if "content" in mcp_result and isinstance(mcp_result["content"], str):
             return mcp_result["content"]
-        return json.dumps(mcp_result)[:6000]
+        if "content" in mcp_result and isinstance(mcp_result["content"], list):
+            return "\n".join(str(x.get("text", x)) if isinstance(x, dict) else str(x) for x in mcp_result["content"])
+        return json.dumps(mcp_result)[:12000]
     if isinstance(mcp_result, list):
-        return "\n".join(extract_text(x) for x in mcp_result)[:6000]
+        return "\n".join(extract_text(x) for x in mcp_result)[:12000]
     return str(mcp_result)
+
+
+def sql_query(sql_tool: str, query: str) -> dict:
+    return mcp_call(sql_tool, {"query": query})
+
+
+def detect_columns(sql_tool: str, table_name: str) -> set[str]:
+    q = f"""
+    select column_name
+    from information_schema.columns
+    where table_schema = 'public' and table_name = {safe_sql_str(table_name)};
+    """
+    r = sql_query(sql_tool, q)
+    if not r.get("ok"):
+        return set()
+    txt = extract_text(r.get("result"))
+    cols = set()
+    for token in txt.replace('"', "").replace("'", "").split():
+        if token.isidentifier():
+            cols.add(token.lower())
+    # fallback known columns if parser misses
+    for name in ["content", "created_at", "key", "category", "importance", "source", "metadata"]:
+        if name in txt.lower():
+            cols.add(name)
+    return cols
+
+
+def fetch_candidate_thoughts(sql_tool: str, query: str, limit: int = 30) -> list[str]:
+    q = f"""
+    select content
+    from public.thoughts
+    where content is not null and length(content) > 0
+    order by created_at desc
+    limit {int(limit)};
+    """
+    r = sql_query(sql_tool, q)
+    if not r.get("ok"):
+        return []
+    txt = extract_text(r.get("result"))
+    # lenient parser: split by line, keep non-empty payload-like lines
+    lines = [ln.strip(" -\t") for ln in txt.splitlines() if ln.strip()]
+    candidates = [ln for ln in lines if len(ln) > 20]
+    return candidates[:limit]
+
+
+def semantic_select_thoughts(query: str, candidates: list[str], top_k: int = 6) -> str:
+    if not candidates:
+        return ""
+    q_emb = openai_embedding(query)
+    scored = []
+    for c in candidates:
+        try:
+            sim = cosine(q_emb, openai_embedding(c[:2000]))
+        except Exception:
+            sim = 0.0
+        scored.append((sim, c))
+    scored.sort(reverse=True, key=lambda x: x[0])
+    picked = [t for _, t in scored[:top_k]]
+    return "\n\n---\n\n".join(picked)
 
 
 def main():
@@ -93,6 +194,7 @@ def main():
     context_tool = os.environ.get("OPENBRAIN_CONTEXT_TOOL", "search_docs")
     sql_tool = os.environ.get("OPENBRAIN_SQL_TOOL", "execute_sql")
 
+    # Context retrieval
     context = ""
     q_gql = args.query.replace('\\', '\\\\').replace('"', '\\"')
     gql = (
@@ -103,20 +205,13 @@ def main():
     )
     c = mcp_call(context_tool, {"graphql_query": gql})
     if c.get("ok"):
-        context = extract_text(c.get("result"))
+        context = extract_text(c.get("result"))[:8000]
 
+    # Thought retrieval with semantic rerank
     thoughts = args.thoughts.strip()
     if not thoughts:
-        q_esc = args.query.replace("'", "''")
-        thoughts_sql = f"""
-        select coalesce(string_agg(content, E'\\n\\n---\\n\\n' order by created_at desc), '') as text
-        from public.thoughts
-        where lower(content) like '%' || lower('{q_esc}') || '%'
-        limit 8;
-        """
-        t = mcp_call(sql_tool, {"query": thoughts_sql})
-        if t.get("ok"):
-            thoughts = extract_text(t.get("result"))
+        candidates = fetch_candidate_thoughts(sql_tool, args.query, limit=25)
+        thoughts = semantic_select_thoughts(args.query, candidates, top_k=6)
 
     if not thoughts:
         thoughts = "No prior thoughts found in Open Brain."
@@ -124,6 +219,7 @@ def main():
     rounds = []
     final_similarity = 0.0
     agreed = False
+    run_id = f"dab-{int(time.time())}"
 
     system = (
         "You are Debate Agent A (ChatGPT). Use supplied Open Brain context. "
@@ -131,7 +227,7 @@ def main():
     )
 
     prior = ""
-    for i in range(1, args.rounds + 1):
+    for i in range(1, max(1, args.rounds) + 1):
         user_prompt = (
             f"Round {i}. Query: {args.query}\n\n"
             f"Open Brain Context:\n{context[:6000]}\n\n"
@@ -140,6 +236,7 @@ def main():
             "Respond with:\n"
             "1) Claim\n2) Evidence\n3) Counterpoint to my thoughts\n4) Revised stance"
         )
+
         reply = openai_chat([
             {"role": "system", "content": system},
             {"role": "user", "content": user_prompt},
@@ -151,12 +248,13 @@ def main():
         final_similarity = sim
         prior = f"Similarity to my thoughts: {sim:.3f}. Key points: {reply[:1200]}"
 
-        rounds.append({"round": i, "similarity": sim, "reply": reply})
+        rounds.append({"round": i, "similarity": round(sim, 4), "reply": reply[:6000]})
         if sim >= args.agreement_threshold:
             agreed = True
             break
 
     outcome = {
+        "run_id": run_id,
         "query": args.query,
         "agreed": agreed,
         "final_similarity": round(final_similarity, 4),
@@ -166,21 +264,41 @@ def main():
         "model": args.model,
     }
 
+    # Storage with schema guardrails
+    mem_cols = detect_columns(sql_tool, "memories")
+    outcome_json = json.dumps(outcome, ensure_ascii=False)
+    if len(outcome_json) > 12000:
+        outcome_json = outcome_json[:12000] + "...<truncated>"
+
     key = f"dual-agent-debate:{int(time.time())}"
-    content_json = json.dumps(outcome, ensure_ascii=False).replace("'", "''")
-    key_esc = key.replace("'", "''")
-    insert_sql = f"""
-    insert into public.memories (key, content, category, importance)
-    values ('{key_esc}', '{content_json}', 'decision', 2)
-    returning key, created_at;
-    """
-    saved = mcp_call(sql_tool, {"query": insert_sql})
+    values = {
+        "key": safe_sql_str(key),
+        "content": safe_sql_str(outcome_json),
+        "category": safe_sql_str("decision"),
+        "importance": "2",
+        "source": safe_sql_str("DualAgentDebate"),
+        "metadata": safe_sql_str(json.dumps({"run_id": run_id, "query": args.query}, ensure_ascii=False)),
+    }
+
+    ordered_cols = [c for c in ["key", "content", "category", "importance", "source", "metadata"] if c in mem_cols]
+    if not ordered_cols:
+        ordered_cols = ["key", "content"]
+
+    col_sql = ", ".join(ordered_cols)
+    val_sql = ", ".join(values[c] for c in ordered_cols)
+    insert_sql = f"insert into public.memories ({col_sql}) values ({val_sql}) returning *;"
+
+    saved = sql_query(sql_tool, insert_sql)
 
     print(json.dumps({
         "outcome": outcome,
         "store": saved,
         "store_tool": sql_tool,
         "context_tool": context_tool,
+        "notes": [
+            "thought retrieval: semantic rerank over recent public.thoughts content",
+            "storage: column-aware insert into public.memories",
+        ],
     }, indent=2, ensure_ascii=False))
 
 
