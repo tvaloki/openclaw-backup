@@ -6,6 +6,7 @@ import os
 import random
 import time
 from datetime import datetime, timezone
+from typing import Optional
 from urllib import error, request
 
 
@@ -13,7 +14,7 @@ def _sleep_backoff(attempt: int, base: float = 0.8):
     time.sleep(base * (2 ** attempt) + random.uniform(0, 0.25))
 
 
-def post_json(url: str, payload: dict, headers: dict | None = None, timeout: int = 60):
+def post_json(url: str, payload: dict, headers: Optional[dict] = None, timeout: int = 60):
     body = json.dumps(payload).encode("utf-8")
     h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     if headers:
