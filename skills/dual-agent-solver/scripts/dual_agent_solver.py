@@ -78,9 +78,11 @@ def parse_openclaw_json(out: str) -> dict:
     raise RuntimeError("Could not parse openclaw agent output")
 
 
-def openclaw_agent_turn(system_role: str, prompt: str) -> str:
+def openclaw_agent_turn(system_role: str, prompt: str, model: str = None) -> str:
     msg = f"SYSTEM ROLE:\n{system_role}\n\nTASK:\n{prompt}"
-    cmd = ["openclaw", "agent", "--json", "--agent", "main", "--thinking", "off", "--message", msg]
+    cmd = ["openclaw", "agent", "--json", "--agent", "main", "--thinking", "low", "--message", msg]
+    if model:
+        cmd.extend(["--model", model])
     out = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
     data = parse_openclaw_json(out)
     payloads = data.get("payloads", [])
@@ -89,10 +91,10 @@ def openclaw_agent_turn(system_role: str, prompt: str) -> str:
     return (payloads[0].get("text") or "").strip()
 
 
-def maybe_openai_turn(system_role: str, prompt: str) -> str:
+def maybe_openai_turn(system_role: str, prompt: str, model: str = None) -> str:
     key = os.environ.get("OPENAI_API_KEY")
     if not key:
-        return openclaw_agent_turn(system_role, prompt)
+        return openclaw_agent_turn(system_role, prompt, model)
     payload = {
         "model": os.environ.get("SOLVER_SECOND_MODEL", "gpt-4o-mini"),
         "messages": [
@@ -122,26 +124,68 @@ def ensure_memories_table(sql_tool: str):
     _ = mcp_call(sql_tool, {"query": q})
 
 
+def get_doug_context(sql_tool: str, query: str) -> str:
+    # Extract keywords from query simply
+    words = [w.lower() for w in query.split() if len(w) > 4]
+    if not words:
+        return ""
+    
+    # Try to find relevant Doug thoughts based on the top 2 words
+    search_terms = " and ".join(f"content ilike '%{w}%'" for w in words[:2])
+    
+    q = f"""
+    select 'Thought (' || created_at::date || '): ' || left(content, 1000)
+    from public.thoughts 
+    where {search_terms}
+    order by created_at desc limit 3;
+    """
+    res = mcp_call(sql_tool, {"query": q})
+    context = ""
+    if res.get("ok") and res.get("result"):
+        context += extract_text(res.get("result")) + "\n"
+        
+    q_mem = f"""
+    select 'Memory (' || key || '): ' || left(content, 1000)
+    from public.memories 
+    where {search_terms}
+    order by created_at desc limit 2;
+    """
+    res_mem = mcp_call(sql_tool, {"query": q_mem})
+    if res_mem.get("ok") and res_mem.get("result"):
+        context += extract_text(res_mem.get("result")) + "\n"
+        
+    return context.strip()
+
+
 def main():
-    ap = argparse.ArgumentParser(description="DualAgentSolver: 2-agent collaborative solver with one OpenClaw agent")
+    ap = argparse.ArgumentParser(description="DualAgentSolver: 2-agent collaborative solver with OpenClaw")
     ap.add_argument("--query", required=True)
-    ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument("--rounds", type=int, default=4)
+    ap.add_argument("--model", type=str, help="Model override for the OpenClaw solver agent (e.g. openai-codex/gpt-5.3-codex)")
     args = ap.parse_args()
 
     sql_tool = os.environ.get("OPENBRAIN_SQL_TOOL", "execute_sql")
     docs_tool = os.environ.get("OPENBRAIN_CONTEXT_TOOL", "search_docs")
 
-    # Optional context pull
+    print("[*] Gathering context from Docs...")
+    # Optional context pull from docs
     q = args.query.replace('\\', '\\\\').replace('"', '\\"')
-    gql = 'query { searchDocs(query: "' + q + '", limit: 4) { nodes { ... on Guide { title href content } ... on CLICommandReference { title href content } } } }'
+    gql = 'query { searchDocs(query: "' + q + '", limit: 3) { nodes { ... on Guide { title content } ... on CLICommandReference { title content } } } }'
     ctx = mcp_call(docs_tool, {"graphql_query": gql})
-    context = extract_text(ctx.get("result"))[:6000] if ctx.get("ok") else ""
+    context = "SUPABASE DOCS:\n" + extract_text(ctx.get("result"))[:4000] if ctx.get("ok") else ""
+
+    print("[*] Gathering context from Doug (historical memory)...")
+    doug_ctx = get_doug_context(sql_tool, args.query)
+    if doug_ctx:
+        context += "\n\nDOUG HISTORICAL CONTEXT:\n" + doug_ctx[:4000]
 
     solver_role = (
-        "You are Agent A (OpenClaw primary solver). Produce practical implementation plans with clear steps, tradeoffs, and rollback strategy."
+        "You are Agent A (Primary Solver). Produce practical, bulletproof implementation plans with exact code/commands, "
+        "clear steps, tradeoffs, and a rollback strategy. Never provide pseudocode when real code is needed. Tell the user what they need to hear, not what they want to hear. Be ruthlessly objective."
     )
     critic_role = (
-        "You are Agent B (adversarial reviewer). Find hidden risks, edge cases, missing assumptions, and force stronger plans."
+        "You are Agent B (Adversarial Reviewer). Find hidden risks, edge cases, missing assumptions, and force stronger plans. "
+        "Reject plans that lack exact implementation details or have obvious failure modes. Tell the user what they need to hear, not what they want to hear. Be ruthlessly objective."
     )
 
     a_plan = ""
@@ -149,14 +193,18 @@ def main():
     rounds = []
 
     for i in range(1, max(1, args.rounds) + 1):
+        print(f"[*] Executing Round {i} Solver...")
         a_prompt = (
             f"Round {i}. Problem: {args.query}\n\n"
             f"Context:\n{context}\n\n"
-            f"Previous critique:\n{b_crit}\n\n"
-            "Output:\n1) Proposed solution\n2) Steps\n3) Risks\n4) Rollback"
         )
-        a_plan = openclaw_agent_turn(solver_role, a_prompt)
+        if b_crit:
+            a_prompt += f"Previous critique to address:\n{b_crit}\n\n"
+            
+        a_prompt += "Output:\n1) Proposed solution\n2) Exact Steps (with code)\n3) Risks\n4) Rollback"
+        a_plan = openclaw_agent_turn(solver_role, a_prompt, args.model)
 
+        print(f"[*] Executing Round {i} Critic...")
         b_prompt = (
             f"Round {i}. Evaluate this plan strictly:\n\n{a_plan}\n\n"
             "Output:\n1) Critical flaws\n2) Missing assumptions\n3) Better alternative\n4) Acceptance conditions"
@@ -165,14 +213,15 @@ def main():
 
         rounds.append({"round": i, "solver": a_plan[:5000], "critic": b_crit[:5000]})
 
+    print("[*] Generating Final Merged Solution...")
     final_prompt = (
         f"Problem: {args.query}\n\n"
         f"Latest solver plan:\n{a_plan}\n\n"
         f"Latest critic review:\n{b_crit}\n\n"
-        "Produce ONE merged final answer:\n"
-        "- Decision\n- Why\n- Step-by-step execution plan\n- Risk mitigations\n- Rollback plan\n- 3 immediate next actions"
+        "Produce ONE merged, hardened final answer containing:\n"
+        "- Decision\n- Why\n- Step-by-step execution plan (with exact code)\n- Risk mitigations\n- Rollback plan\n- Immediate next actions"
     )
-    final_solution = openclaw_agent_turn(solver_role, final_prompt)
+    final_solution = openclaw_agent_turn(solver_role, final_prompt, args.model)
 
     outcome = {
         "run_id": f"das-{int(time.time())}",
