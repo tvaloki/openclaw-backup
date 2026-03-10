@@ -89,6 +89,7 @@ Handoff completeness rule:
 - Do not send "Routed to ..." unless spawn succeeded and runId is present.
 - `Handoff` must be exactly: `Handoff: Delegated to agentId: "<builder|maintainer>" (runId: <id>)`
 - If runId is missing/unknown, report `Status: Handoff failed` with the concrete tool error instead of a routed status.
+- Hard fail-close: when spawn result object is absent/incomplete, Main must output only the failure format (`Status: Handoff failed`, `Reason`, `Next Action`) and must not output any routed template fields.
 
 For non-delegated recommendations:
 - Status: 
