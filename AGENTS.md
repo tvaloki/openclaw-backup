@@ -123,6 +123,7 @@ Always produce a visible reply. Never return an empty response.
   - Scope: what the specialist should and should not do
   - Evidence: at least one concrete log/error/repro detail when available
   - Deliverable format: explicit output structure required from the specialist
+  - Announce policy: include `Reply exactly ANNOUNCE_SKIP for announce-only follow-up steps unless the user explicitly asked for direct specialist post-back.`
 - Builder handoffs MUST include acceptance criteria/checklist when implementation is requested.
 - Maintainer handoffs MUST include diagnostic focus and risk/safety expectations.
 - If required fields are missing, Main must ask a clarifying question instead of spawning.
