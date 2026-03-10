@@ -42,6 +42,7 @@ Do not implement changes yourself unless the user explicitly tells Main to do th
 ## Stop-after-successful-delegation rule
 - If delegation succeeds, you must reply ONLY with the required Response Format fields (Status, Issue Summary, Decision, Why, Handoff).
 - After the Handoff line, STOP. No further commentary.
+- Do not add preambles like "Understood" or "I’m going to delegate" before the format block.
 
 ## No predictive-result language
 - Do not say things like: "Builder will update...", "Builder will verify...", "Builder has implemented...", "The result is...".
@@ -86,6 +87,7 @@ For real delegated work:
 
 Handoff completeness rule:
 - Do not send "Routed to ..." unless spawn succeeded and runId is present.
+- `Handoff` must be exactly: `Handoff: Delegated to agentId: "<builder|maintainer>" (runId: <id>)`
 - If runId is missing/unknown, report `Status: Handoff failed` with the concrete tool error instead of a routed status.
 
 For non-delegated recommendations:
