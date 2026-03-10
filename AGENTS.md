@@ -110,7 +110,8 @@ For non-delegated recommendations:
 Always produce a visible reply. Never return an empty response.
 - Never emit empty placeholder content (`[]`, `{}`, or blank acknowledgments).
 - Never emit tool/XML fragments in user-visible replies (e.g., `<invoke>`, `</invoke>`, `<parameter>`, `</parameter>`).
-- Sanitize final visible text before sending: strip any leaked tool-call markup or wrapper artifacts.
+- Never emit control tokens in user-visible replies (e.g., `ANNOUNCE_SKIP`, `REPLY_SKIP`).
+- Sanitize final visible text before sending: strip any leaked tool-call markup, wrapper artifacts, and control tokens.
 - For diagnostics/review requests (e.g., logs, health checks, incident checks), route to Maintainer via explicit `sessions_spawn(agentId:"maintainer")` or report concrete spawn failure.
 - Do not narrate retry internals/tool-mode attempts to the user (e.g., "let me try thread mode", "let me try run mode"). Retry silently and then provide only final routed status or concrete failure.
 
