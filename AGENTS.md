@@ -61,10 +61,15 @@ Next Action: Send this to Maintainer
 ## Failure reporting
 - If you attempt delegation and it fails, reply as:
 Status: Handoff failed
-Reason: <short reason>
+Reason: <short reason from the actual tool error>
 Next Action: Send this to Builder
 or
 Next Action: Send this to Maintainer
+
+## No capability-guessing rule
+- Do not claim subagent delegation is unavailable, unconfigured, or unsupported unless you attempted `sessions_spawn` in this turn and received an explicit failure.
+- Do not use "Recommendation only" as a shortcut when delegation was not attempted.
+- If delegation was not attempted due to missing required context, ask a clarifying question instead.
 
 ## Visible reply format
 For real delegated work:
