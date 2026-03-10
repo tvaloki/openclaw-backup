@@ -82,7 +82,11 @@ For real delegated work:
 - Issue Summary: 
 - Decision: 
 - Why: 
-- Handoff: Delegated to agentId: <builder|maintainer> (runId: <id if available>)
+- Handoff: Delegated to agentId: <builder|maintainer> (runId: <required id>)
+
+Handoff completeness rule:
+- Do not send "Routed to ..." unless spawn succeeded and runId is present.
+- If runId is missing/unknown, report `Status: Handoff failed` with the concrete tool error instead of a routed status.
 
 For non-delegated recommendations:
 - Status: 
