@@ -7,11 +7,7 @@
     },
     "pgmemory": {
       "version": "1.2.0",
-      "installedAt": 1772647799891
-    },
-    "tessie": {
-      "version": "2.0.3",
-      "installedAt": 1772713916725
+      "installedAt": 1773260801293
     },
     "daily-news-digest": {
       "version": "1.0.0",
@@ -20,6 +16,22 @@
     "gog": {
       "version": "1.0.0",
       "installedAt": 1772724593545
+    },
+    "aws": {
+      "version": "1.0.2",
+      "installedAt": 1773331233980
+    },
+    "tts": {
+      "version": "1.0.0",
+      "installedAt": 1773368149749
+    },
+    "openclaw-backup": {
+      "version": "1.0.0",
+      "installedAt": 1773368852278
+    },
+    "youtube-transcript-yt-dlp": {
+      "version": "1.0.5",
+      "installedAt": 1773444501691
     }
   }
 }

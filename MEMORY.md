@@ -1,20 +1,20 @@
 # MEMORY.md
 
 ## Stable Preferences
-- User has a scheduled "ULTRA-COMPACT Nashville Brief" format preference: 3 bullets only (Tesla status, route ETA to Downtown Nashville, local Nashville/Middle TN news) plus a final "✅ Quick Focus" line.
+- User has a scheduled "ULTRA-COMPACT Nashville Brief" format preference: 2 bullets only (route ETA to Downtown Nashville, local Nashville/Middle TN news) plus a final "✅ Quick Focus" line.
 - Briefs should be tightly constrained and concise.
 
 ## Current Operational Follow-up
-- Required local commands for that brief (`tessie`, `smart-route`, `daily-news-digest`) were unavailable in this runtime on 2026-03-03; restoring/installing them is needed for live briefs.
-- Missing `tessie`, `smart-route`, `daily-news-digest` commands impede brief generation; need to install/restore them. This is a priority follow-up.
+- **GitHub Backup Sync:** The nightly GitHub sync cron job is successfully committing changes locally, but failing the `git push` step. Needs a remote GitHub repository and authentication (SSH or PAT) configured to complete the off-site backup loop.
+- (Resolved) `smart-route` and `daily-news-digest` commands are fully restored and the Morning Brief routing is operational. The Nashville Morning Brief has been handed off to the Builder agent for formatting. (Tessie uninstalled and removed from brief).
 
 ## Model Routing Playbook (Cost-Minimizing)
 - User is in OpenClaw build phase and wants low spend while maintaining quality.
 - Default routing policy:
-  - Use FREE model (`NVIDIA_FREE`) for routine work: summaries, drafts, formatting, status checks, cron reports, first-pass ideation.
-  - Use Codex (`openai-codex/gpt-5.3-codex`) only for high-leverage tasks: debugging failing systems, architecture decisions, production scripts, security-sensitive actions, and final pre-ship review.
+  - Use a fast, cheap, reliable paid model (e.g., `google/gemini-flash-latest`) for routine work: summaries, drafts, formatting, status checks, cron reports, first-pass ideation. (Note: Previously used `NVIDIA_FREE`, but it suffers from severe API rate-limit drops resulting in missed replies).
+  - Use Codex (`openai-codex/gpt-5.3-codex` or `gpt-5.4`) only for high-leverage tasks: debugging failing systems, architecture decisions, production scripts, security-sensitive actions, and final pre-ship review.
 - Enforce 2-step pattern by default:
-  1) First pass on FREE model.
+  1) First pass on Flash/fast model.
   2) Escalate to Codex only if risk/complexity or quality threshold requires it.
 - Assistant should proactively recommend model choice at task start when relevant.
 
@@ -28,3 +28,13 @@
 
 ## Core Directive: Doug (OpenBrain/pgmemory) First
 - **Always check Doug for context.** When asked a question, tackling a problem, or dealing with operational/personal data, proactively search `public.thoughts` (via pgmemory/SQL) for past conversations, decisions, or context *before* starting from scratch or saying data is unavailable. The user has 2+ years of ChatGPT history stored there.
+
+## Agent Collaboration & Delegation Rules
+- **Honest Handoff Rule (Main):** The Main agent must only claim delegation ("Handed to...", "Routed to...") if it successfully performs a `sessions_spawn` to another agent. If no delegation occurs, use:
+  - `Status: Recommendation only`
+  - `Next Action: Send this to [Builder|Maintainer]`
+  - Standardized response format: Status, Issue Summary, Decision, Why, Next Action.
+
+## Infrastructure & Architecture Notes
+- **EC2 Gateway Daemon:** OpenClaw runs as a system-level service (`openclaw-gateway.service`) on this host. The user-scoped service (`systemctl --user`) is intentionally disabled. Cron jobs and self-healing scripts must use `sudo systemctl restart openclaw-gateway.service`.
+- **Google Maps API Readiness:** `smart-route` command is fully restored and the Nashville Morning Brief routing is operational. Requires `GOOGLE_ROUTES_API_KEY` to be active and the Google Routes API enabled in the Google Cloud Console.

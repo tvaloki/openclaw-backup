@@ -38,3 +38,19 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 ---
 
 Add whatever helps you do your job. This is your cheat sheet.
+
+### OpenBrain MCP Tools
+
+- **`search_docs`**: When calling the `search_docs` Supabase GraphQL tool via MCP, the resulting type is `SearchResultCollection`. It DOES NOT have fields like `docs`, `results`, `title`, or `content`. You MUST query the `nodes` or `edges` array instead. 
+  Example valid query:
+  ```graphql
+  query {
+    searchDocs(query: "YOUR_QUERY", limit: 5) {
+      nodes {
+        title
+        href
+        content
+      }
+    }
+  }
+  ```

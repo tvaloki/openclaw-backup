@@ -162,6 +162,16 @@ Before doing anything else:
 2. Read `USER.md` — this is who you're helping
 3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+   **Query pgmemory instead of reading markdown files** — faster, focused, survives compaction. (<!-- pgmemory:startup -->)
+   ```bash
+   # Check connectivity first — warns loudly if DB is down
+   python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py --check
+   # Load critical memories (decisions, constraints, infrastructure)
+   python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py --importance 3 --limit 20
+   # Semantic search for current task context
+   python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py "brief description of current work"
+   ```
+   If --check fails with exit code 2: warn the user ("⚠️ pgmemory unreachable") and fall back to MEMORY.md + daily files.
 
 Don't ask permission. Just do it.
 
@@ -244,3 +254,57 @@ This is a starting point. Add your own conventions, style, and rules as you figu
 ## Subagent Spawn Rules
 - When using `sessions_spawn`, **DO NOT** use `mode="session"` or `thread=true`. The system will reject it because thread routing is not fully configured for your channel.
 - Rely on the default `mode="run"`. Just provide `agentId` and `task`.
+
+<!-- pgmemory:section -->
+## pgmemory — Persistent Semantic Memory
+
+**Config:** `/home/ec2-user/.openclaw/pgmemory.json`  |  **Namespace:** `main`
+
+pgmemory is the **default memory system**. Markdown files are the automatic backup.
+Always write to both. Always read from pgmemory first.
+
+### ⚡ Startup (MANDATORY)
+
+```bash
+# Check connectivity (warns loudly if DB is down)
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py --check
+
+# Load critical memories
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py --importance 3 --limit 20
+
+# Semantic search for current task context
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py "describe what you're working on"
+```
+
+If `--check` fails (exit 2): warn the user, fall back to reading daily markdown files.
+
+### ✏️ Writing memories (always write to BOTH)
+
+**1. pgmemory — primary:**
+```bash
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/write_memory.py \
+  --key "unique.descriptive.key" \
+  --content "What you want to remember" \
+  --category decision \
+  --importance 3
+```
+
+**2. Daily markdown backup** — also append a brief note to `memory/YYYY-MM-DD.md`.
+Full detail lives in pgmemory; markdown is the durable fallback if DB is ever unavailable.
+
+### Categories & importance
+
+| Category | Importance | Expires |
+|---|---|---|
+| decision, constraint | 3 | Never |
+| infrastructure, vision, preference | 2–3 | Never or 180d |
+| context | 2 | 180d |
+| task | 1 | 30d |
+
+### Maintenance
+
+```bash
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/setup.py --doctor    # health check
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/setup.py --decay     # archive faded memories
+python3 /home/ec2-user/.agents/skills/pgmemory/scripts/query_memory.py --stats
+```
