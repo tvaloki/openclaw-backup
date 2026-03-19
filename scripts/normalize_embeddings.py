@@ -5,7 +5,7 @@ Normalize embedding dimensions for a shared pgvector column.
 Use case:
 - OpenAI embeddings are 1536 dims
 - Voyage embeddings are 3072 dims
-- You want a single target dimension (typically 3072)
+- You want a single shared dimension (default here: 1536)
 
 Behavior:
 - If len(vec) < target_dim: right-pad with zeros
@@ -14,7 +14,7 @@ Behavior:
 
 Examples:
   echo '[0.1, 0.2]' | python scripts/normalize_embeddings.py --target-dim 4
-  python scripts/normalize_embeddings.py --input emb.json --output emb_norm.json --target-dim 3072
+  python scripts/normalize_embeddings.py --input emb.json --output emb_norm.json --target-dim 1536
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ def main() -> int:
         raise TypeError("Input must be a JSON array of numbers")
 
     vec = [float(x) for x in raw]
-    out = normalize(vec, target_dim=args.target_dim, truncate=args.truncate)
+    out = normalize(vec, target_dim=args.target_dim, truncate=not args.no_truncate)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

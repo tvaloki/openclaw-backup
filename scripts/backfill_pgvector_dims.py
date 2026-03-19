@@ -4,8 +4,8 @@ Backfill/normalize pgvector dimensions in Postgres.
 
 Typical use:
 - Mixed embeddings from OpenAI (1536) and Voyage (3072)
-- Single target dimension in DB (usually 3072)
-- Pad shorter vectors with trailing zeros
+- Single target dimension in DB (default here: 1536)
+- Truncate longer vectors (e.g., Voyage 3072 -> 1536) and pad shorter vectors
 
 IMPORTANT:
 - Your target pgvector column type must support target dim (e.g., vector(3072)).
@@ -17,7 +17,7 @@ Examples:
     --table memory_items \
     --id-column id \
     --embedding-column embedding \
-    --target-dim 3072 \
+    --target-dim 1536 \
     --batch-size 500
 
   # dry run
@@ -69,10 +69,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--table", required=True, help="Table containing embeddings")
     p.add_argument("--id-column", default="id", help="Primary key column")
     p.add_argument("--embedding-column", default="embedding", help="pgvector column")
-    p.add_argument("--target-dim", type=int, default=3072)
+    p.add_argument("--target-dim", type=int, default=1536)
     p.add_argument("--batch-size", type=int, default=500)
     p.add_argument("--where", default="", help="Optional SQL WHERE clause tail (no 'WHERE').")
-    p.add_argument("--truncate", action="store_true", help="Allow truncation for vectors > target dim")
+    p.add_argument("--no-truncate", action="store_true", help="Disable truncation for vectors > target dim")
     p.add_argument("--dry-run", action="store_true", help="Print counts without writing")
     return p.parse_args()
 
@@ -115,7 +115,7 @@ def main() -> int:
                 for row_id, emb_text in rows:
                     scanned += 1
                     vec = json.loads(emb_text)
-                    norm, did_change = normalize(vec, args.target_dim, truncate=args.truncate)
+                    norm, did_change = normalize(vec, args.target_dim, truncate=not args.no_truncate)
                     if did_change:
                         changed += 1
                         if not args.dry_run:
