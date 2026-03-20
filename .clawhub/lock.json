@@ -12,6 +12,10 @@
     "capability-evolver": {
       "version": "1.32.4",
       "installedAt": 1774023415899
+    },
+    "xiucheng-self-improving-agent": {
+      "version": "1.0.0",
+      "installedAt": 1774023986850
     }
   }
 }
