@@ -1,37 +1,17 @@
 {
   "version": 1,
   "skills": {
-    "smart-route": {
-      "version": "1.0.4",
-      "installedAt": 1772640510286
-    },
     "pgmemory": {
       "version": "1.2.0",
-      "installedAt": 1773260801293
+      "installedAt": 1773935064504
     },
-    "daily-news-digest": {
-      "version": "1.0.0",
-      "installedAt": 1772713921844
+    "git": {
+      "version": "1.0.8",
+      "installedAt": 1774015155491
     },
-    "gog": {
-      "version": "1.0.0",
-      "installedAt": 1772724593545
-    },
-    "aws": {
-      "version": "1.0.2",
-      "installedAt": 1773331233980
-    },
-    "tts": {
-      "version": "1.0.0",
-      "installedAt": 1773368149749
-    },
-    "openclaw-backup": {
-      "version": "1.0.0",
-      "installedAt": 1773368852278
-    },
-    "youtube-transcript-yt-dlp": {
-      "version": "1.0.5",
-      "installedAt": 1773444501691
+    "capability-evolver": {
+      "version": "1.32.4",
+      "installedAt": 1774023415899
     }
   }
 }
