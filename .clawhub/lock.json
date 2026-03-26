@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "tessie": {
+      "version": "2.0.3",
+      "installedAt": 1774438249224
+    },
+    "smart-route": {
+      "version": "1.0.4",
+      "installedAt": 1774438251491
+    },
+    "daily-news-digest": {
+      "version": "1.0.0",
+      "installedAt": 1774438254080
+    }
+  }
+}
